@@ -41,6 +41,7 @@ app/                        application package
     auth.py                 /auth/register, /auth/login
     books.py                /books CRUD + bulk import
 migrations/schema.sql       DDL — applied on app startup
+sample_data/books.csv       sample file you can feed to /books/import
 tests/                      pytest unit + integration tests
   conftest.py
   test_unit_*.py            DB-free unit tests
@@ -135,6 +136,18 @@ scoped to the integration `client` fixture).
 
 The response lists how many rows were inserted and per-row validation errors
 so a partial-success import is reported transparently.
+
+A sample CSV is included at `sample_data/books.csv`. Quick try-it-out:
+
+```bash
+# get a token first (replace credentials)
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+  -d 'username=user1&password=supersecret1' | jq -r .access_token)
+
+curl -X POST http://localhost:8000/books/import \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@sample_data/books.csv"
+```
 
 ## Security notes
 
