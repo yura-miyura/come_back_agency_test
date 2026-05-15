@@ -41,7 +41,7 @@ async def init_schema() -> None:
 
 
 async def drop_schema() -> None:
-    """Test helper: wipe schema between test runs."""
+    """Test-only helper for resetting state between runs."""
     pool = await open_pool()
     async with pool.connection() as conn:
         async with conn.cursor() as cur:

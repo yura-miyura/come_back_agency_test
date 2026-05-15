@@ -10,8 +10,7 @@ from httpx import ASGITransport, AsyncClient
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Test config — must be set BEFORE importing the app modules.
-# Override DATABASE_URL in your shell to point at your local Postgres.
+# Env vars must be set BEFORE importing the app modules so Settings picks them up.
 os.environ.setdefault(
     "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/books_test",

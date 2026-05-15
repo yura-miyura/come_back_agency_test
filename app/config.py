@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Use the current user by omitting username/password
     database_url: str = "postgresql://localhost:5432/books"
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

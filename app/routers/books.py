@@ -164,7 +164,6 @@ async def import_books(
         elif filename.endswith(".json") or "json" in content_type:
             rows = _parse_json_rows(text)
         else:
-            # try JSON first then CSV
             try:
                 rows = _parse_json_rows(text)
             except (ValueError, json.JSONDecodeError):

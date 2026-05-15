@@ -22,16 +22,14 @@ app.include_router(books_router)
 
 
 def _safe_errors(errors) -> list[dict]:
-    """Pydantic puts the original ValueError in `ctx` and may include a `url` key;
-    drop the url, stringify exception values in ctx, drop any non-JSON-safe values."""
+    """Sanitise Pydantic errors: ctx may hold ValueError instances which aren't JSON-serialisable."""
     safe: list[dict] = []
     for err in errors:
         e = {k: v for k, v in dict(err).items() if k != "url"}
         ctx = e.get("ctx")
         if isinstance(ctx, dict):
             e["ctx"] = {k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()}
-        input_value = e.get("input")
-        if isinstance(input_value, (bytes, bytearray)):
+        if isinstance(e.get("input"), (bytes, bytearray)):
             e["input"] = "<bytes>"
         safe.append(e)
     return safe

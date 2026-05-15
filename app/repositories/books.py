@@ -4,11 +4,10 @@ from psycopg.rows import dict_row
 from app.database import get_pool
 
 SORTABLE_FIELDS = {"title", "published_year", "created_at", "id"}
-# Author sort needs join — handled separately.
 
 
 async def _upsert_authors(conn: AsyncConnection, names: list[str]) -> list[int]:
-    """Insert any new authors, return ids in the same order as `names`."""
+    """Return author ids in the same order as `names`, inserting any new ones."""
     if not names:
         return []
     ids: list[int] = []
