@@ -34,10 +34,43 @@ export JWT_SECRET="a-long-random-string-at-least-32-bytes"
 uvicorn app.main:app --reload
 ```
 
-Interactive docs: <http://localhost:8000/docs>.
-
 If you only want runtime deps (no test tools), install
 `requirements.txt` instead of `requirements-dev.txt`.
+
+## API documentation
+
+The server exposes auto-generated, fully-interactive API docs:
+
+- **Swagger UI**: <http://localhost:8000/docs> — try every endpoint
+  from the browser, including auth (click *Authorize* at the top right
+  and paste a bearer token after `/auth/login`).
+- **ReDoc**: <http://localhost:8000/redoc> — read-only reference view.
+- **Raw OpenAPI schema** (JSON): <http://localhost:8000/openapi.json>
+
+The docs reflect the live Pydantic schemas, so request/response models,
+validation rules (year range, genre allow-list, etc.), and example
+payloads are always up to date with the code.
+
+## Database migrations
+
+The schema lives in [`migrations/schema.sql`](migrations/schema.sql) —
+a single idempotent file with the `users`, `authors`, `books`, and
+`book_authors` tables plus supporting indexes (`CREATE TABLE IF NOT
+EXISTS`, `CREATE INDEX IF NOT EXISTS`).
+
+It is applied automatically on application startup via
+`app.database.init_schema()` in the FastAPI lifespan hook, so a fresh
+database becomes ready as soon as `uvicorn app.main:app` starts.
+
+To apply it manually (CI, container build, etc.):
+
+```bash
+psql "$DATABASE_URL" -f migrations/schema.sql
+```
+
+Schema changes for now go directly into `schema.sql`. If/when the
+project grows, swap this for versioned migrations (Alembic / yoyo /
+dbmate) — the current setup is intentionally minimal.
 
 ## Running tests
 
