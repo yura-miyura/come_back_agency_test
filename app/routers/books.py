@@ -17,9 +17,12 @@ def _stringify_ctx(errors: list[dict]) -> list[dict]:
         e = dict(err)
         ctx = e.get("ctx")
         if isinstance(ctx, dict):
-            e["ctx"] = {k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()}
+            e["ctx"] = {
+                k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()
+            }
         safe.append(e)
     return safe
+
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -28,7 +31,9 @@ SortDir = Literal["asc", "desc"]
 
 
 @router.post("/", response_model=BookOut, status_code=status.HTTP_201_CREATED)
-async def create_book(payload: BookCreate, _user: dict = Depends(get_current_user)) -> BookOut:
+async def create_book(
+    payload: BookCreate, _user: dict = Depends(get_current_user)
+) -> BookOut:
     row = await books_repo.create_book(
         title=payload.title,
         authors=payload.authors,
@@ -78,7 +83,9 @@ async def list_books(
 async def get_book(book_id: int) -> BookOut:
     row = await books_repo.get_book(book_id)
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="book not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="book not found"
+        )
     return BookOut(**row)
 
 
@@ -96,7 +103,9 @@ async def update_book(
         )
     row = await books_repo.update_book(book_id, **updates)
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="book not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="book not found"
+        )
     return BookOut(**row)
 
 
@@ -104,7 +113,9 @@ async def update_book(
 async def delete_book(book_id: int, _user: dict = Depends(get_current_user)) -> None:
     ok = await books_repo.delete_book(book_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="book not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="book not found"
+        )
 
 
 def _parse_csv_rows(text: str) -> list[dict]:

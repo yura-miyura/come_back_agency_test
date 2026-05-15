@@ -24,7 +24,9 @@ async def register(payload: UserCreate) -> UserOut:
 @router.post("/login", response_model=TokenOut)
 async def login(form: OAuth2PasswordRequestForm = Depends()) -> TokenOut:
     user = await users_repo.get_user_by_username(form.username)
-    if user is None or not auth_helpers.verify_password(form.password, user["password_hash"]):
+    if user is None or not auth_helpers.verify_password(
+        form.password, user["password_hash"]
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid username or password",

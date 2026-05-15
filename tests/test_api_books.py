@@ -125,9 +125,18 @@ async def test_list_filter_by_title_and_author(client, auth_headers):
         client,
         auth_headers,
         [
-            book_payload(title="Sapiens", authors=["Yuval Noah Harari"], published_year=2011),
-            book_payload(title="Homo Deus", authors=["Yuval Noah Harari"], published_year=2016),
-            book_payload(title="Dune", authors=["Frank Herbert"], genre="Fantasy", published_year=1965),
+            book_payload(
+                title="Sapiens", authors=["Yuval Noah Harari"], published_year=2011
+            ),
+            book_payload(
+                title="Homo Deus", authors=["Yuval Noah Harari"], published_year=2016
+            ),
+            book_payload(
+                title="Dune",
+                authors=["Frank Herbert"],
+                genre="Fantasy",
+                published_year=1965,
+            ),
         ],
     )
     r = await client.get("/books/", params={"title": "sap"})
@@ -173,14 +182,22 @@ async def test_list_pagination_and_sort(client, auth_headers):
             book_payload(title="B", published_year=2002),
         ],
     )
-    r = await client.get("/books/", params={"sort_by": "title", "sort_dir": "asc", "limit": 2, "offset": 0})
+    r = await client.get(
+        "/books/",
+        params={"sort_by": "title", "sort_dir": "asc", "limit": 2, "offset": 0},
+    )
     body = r.json()
     assert body["total"] == 3
     assert [b["title"] for b in body["items"]] == ["A", "B"]
-    r = await client.get("/books/", params={"sort_by": "title", "sort_dir": "asc", "limit": 2, "offset": 2})
+    r = await client.get(
+        "/books/",
+        params={"sort_by": "title", "sort_dir": "asc", "limit": 2, "offset": 2},
+    )
     assert [b["title"] for b in r.json()["items"]] == ["C"]
 
-    r = await client.get("/books/", params={"sort_by": "published_year", "sort_dir": "desc"})
+    r = await client.get(
+        "/books/", params={"sort_by": "published_year", "sort_dir": "desc"}
+    )
     years = [b["published_year"] for b in r.json()["items"]]
     assert years == sorted(years, reverse=True)
 

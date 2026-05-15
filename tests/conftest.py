@@ -15,7 +15,9 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/books_test",
 )
-os.environ.setdefault("JWT_SECRET", "test-secret-please-rotate-and-make-it-long-enough-for-hs256")
+os.environ.setdefault(
+    "JWT_SECRET", "test-secret-please-rotate-and-make-it-long-enough-for-hs256"
+)
 os.environ.setdefault("JWT_EXPIRES_MINUTES", "60")
 
 from app.config import get_settings  # noqa: E402
@@ -40,7 +42,9 @@ async def _fresh_schema():
 
 @pytest_asyncio.fixture
 async def client(_fresh_schema):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
@@ -48,7 +52,9 @@ async def client(_fresh_schema):
 async def auth_token(client: AsyncClient) -> str:
     username = f"user_{uuid.uuid4().hex[:8]}"
     password = "supersecret1"
-    r = await client.post("/auth/register", json={"username": username, "password": password})
+    r = await client.post(
+        "/auth/register", json={"username": username, "password": password}
+    )
     assert r.status_code == 201, r.text
     r = await client.post(
         "/auth/login",

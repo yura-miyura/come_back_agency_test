@@ -27,7 +27,9 @@ async def _upsert_authors(conn: AsyncConnection, names: list[str]) -> list[int]:
     return ids
 
 
-async def _attach_authors(conn: AsyncConnection, book_id: int, author_ids: list[int]) -> None:
+async def _attach_authors(
+    conn: AsyncConnection, book_id: int, author_ids: list[int]
+) -> None:
     async with conn.cursor() as cur:
         for aid in author_ids:
             await cur.execute(

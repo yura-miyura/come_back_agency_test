@@ -5,8 +5,12 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from app.config import get_settings
 
-NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
-Username = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)]
+NonEmptyStr = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
+]
+Username = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=3, max_length=64)
+]
 Password = Annotated[str, StringConstraints(min_length=8, max_length=128)]
 
 
@@ -55,8 +59,8 @@ class BookBase(BaseModel):
     published_year: int
 
     _v_authors = field_validator("authors")(lambda cls, v: _validate_authors(v))
-    _v_year    = field_validator("published_year")(lambda cls, v: _validate_year(v))
-    _v_genre   = field_validator("genre")(lambda cls, v: _validate_genre(v))
+    _v_year = field_validator("published_year")(lambda cls, v: _validate_year(v))
+    _v_genre = field_validator("genre")(lambda cls, v: _validate_genre(v))
 
 
 class BookCreate(BookBase):
@@ -69,9 +73,15 @@ class BookUpdate(BaseModel):
     genre: NonEmptyStr | None = None
     published_year: int | None = None
 
-    _v_authors = field_validator("authors")(lambda cls, v: v if v is None else _validate_authors(v))
-    _v_year    = field_validator("published_year")(lambda cls, v: v if v is None else _validate_year(v))
-    _v_genre   = field_validator("genre")(lambda cls, v: v if v is None else _validate_genre(v))
+    _v_authors = field_validator("authors")(
+        lambda cls, v: v if v is None else _validate_authors(v)
+    )
+    _v_year = field_validator("published_year")(
+        lambda cls, v: v if v is None else _validate_year(v)
+    )
+    _v_genre = field_validator("genre")(
+        lambda cls, v: v if v is None else _validate_genre(v)
+    )
 
 
 class BookOut(BaseModel):

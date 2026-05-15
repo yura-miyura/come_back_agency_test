@@ -28,7 +28,9 @@ def _safe_errors(errors) -> list[dict]:
         e = {k: v for k, v in dict(err).items() if k != "url"}
         ctx = e.get("ctx")
         if isinstance(ctx, dict):
-            e["ctx"] = {k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()}
+            e["ctx"] = {
+                k: (str(v) if isinstance(v, Exception) else v) for k, v in ctx.items()
+            }
         if isinstance(e.get("input"), (bytes, bytearray)):
             e["input"] = "<bytes>"
         safe.append(e)
