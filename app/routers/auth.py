@@ -10,6 +10,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def register(payload: UserCreate) -> UserOut:
+    """Create a new user account. Returns 409 if the username is taken."""
     password_hash = auth_helpers.hash_password(payload.password)
     try:
         user = await users_repo.create_user(payload.username, password_hash)
@@ -23,6 +24,7 @@ async def register(payload: UserCreate) -> UserOut:
 
 @router.post("/login", response_model=TokenOut)
 async def login(form: OAuth2PasswordRequestForm = Depends()) -> TokenOut:
+    """OAuth2 password flow: exchange username + password for a bearer JWT."""
     user = await users_repo.get_user_by_username(form.username)
     if user is None or not auth_helpers.verify_password(
         form.password, user["password_hash"]

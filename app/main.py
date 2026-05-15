@@ -11,6 +11,7 @@ from app.routers.books import router as books_router
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """Apply DB migrations on startup and close the connection pool on shutdown."""
     await init_schema()
     yield
     await close_pool()
@@ -39,6 +40,7 @@ def _safe_errors(errors) -> list[dict]:
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+    """Override the default 422 handler so the JSON body is always serialisable."""
     return JSONResponse(
         status_code=422,
         content={"detail": _safe_errors(exc.errors())},
@@ -47,4 +49,5 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
 
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
+    """Liveness probe used by uptime checks."""
     return {"status": "ok"}

@@ -4,10 +4,11 @@ from app.database import get_pool
 
 
 class UsernameTaken(Exception):
-    pass
+    """Raised when create_user hits a UNIQUE constraint on username."""
 
 
 async def create_user(username: str, password_hash: str) -> dict:
+    """Insert a user; raises UsernameTaken if the username already exists."""
     sql = """
         INSERT INTO users (username, password_hash)
         VALUES (%s, %s)
@@ -25,6 +26,7 @@ async def create_user(username: str, password_hash: str) -> dict:
 
 
 async def get_user_by_username(username: str) -> dict | None:
+    """Return the user row by username, or None if not found."""
     sql = "SELECT id, username, password_hash FROM users WHERE username = %s"
     pool = get_pool()
     async with pool.connection() as conn:

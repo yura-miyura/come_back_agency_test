@@ -30,6 +30,7 @@ async def _upsert_authors(conn: AsyncConnection, names: list[str]) -> list[int]:
 async def _attach_authors(
     conn: AsyncConnection, book_id: int, author_ids: list[int]
 ) -> None:
+    """Link a book to authors in book_authors, idempotent on duplicate pairs."""
     async with conn.cursor() as cur:
         for aid in author_ids:
             await cur.execute(
@@ -43,6 +44,7 @@ async def _attach_authors(
 
 
 async def _fetch_book(conn: AsyncConnection, book_id: int) -> dict | None:
+    """Read one book by id with its author names aggregated, or None if missing."""
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
             """
@@ -69,6 +71,7 @@ async def _fetch_book(conn: AsyncConnection, book_id: int) -> dict | None:
 async def create_book(
     *, title: str, authors: list[str], genre: str, published_year: int
 ) -> dict:
+    """Insert a book and its author links in a single transaction; return the fresh row."""
     pool = get_pool()
     async with pool.connection() as conn:
         async with conn.transaction():
@@ -88,6 +91,7 @@ async def create_book(
 
 
 async def get_book(book_id: int) -> dict | None:
+    """Return one book by id, or None if it does not exist."""
     pool = get_pool()
     async with pool.connection() as conn:
         return await _fetch_book(conn, book_id)
@@ -101,6 +105,7 @@ async def update_book(
     genre: str | None = None,
     published_year: int | None = None,
 ) -> dict | None:
+    """Partially update a book; replace its authors if `authors` is provided. Returns None if missing."""
     pool = get_pool()
     async with pool.connection() as conn:
         async with conn.transaction():
@@ -138,6 +143,7 @@ async def update_book(
 
 
 async def delete_book(book_id: int) -> bool:
+    """Delete the book by id. Returns True if a row was removed, False if it didn't exist."""
     pool = get_pool()
     async with pool.connection() as conn:
         async with conn.cursor() as cur:
@@ -157,6 +163,7 @@ async def list_books(
     limit: int = 20,
     offset: int = 0,
 ) -> tuple[list[dict], int]:
+    """Return (rows, total) for the filtered, sorted, paginated book list."""
     if sort_by not in SORTABLE_FIELDS and sort_by != "author":
         raise ValueError(f"sort_by must be one of {SORTABLE_FIELDS | {'author'}}")
     if sort_dir.lower() not in {"asc", "desc"}:

@@ -12,6 +12,7 @@ from app.schemas import BookCreate, BookOut, BookUpdate, ImportReport, Paginated
 
 
 def _stringify_ctx(errors: list[dict]) -> list[dict]:
+    """Convert Exception values inside Pydantic error ctx dicts to strings."""
     safe: list[dict] = []
     for err in errors:
         e = dict(err)
@@ -34,6 +35,7 @@ SortDir = Literal["asc", "desc"]
 async def create_book(
     payload: BookCreate, _user: dict = Depends(get_current_user)
 ) -> BookOut:
+    """Create a new book record. Requires authentication."""
     row = await books_repo.create_book(
         title=payload.title,
         authors=payload.authors,
@@ -55,6 +57,7 @@ async def list_books(
     limit: Annotated[int, Query(ge=1, le=200)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> PaginatedBooks:
+    """List books with optional filters, pagination, and sorting."""
     if year_from is not None and year_to is not None and year_from > year_to:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -81,6 +84,7 @@ async def list_books(
 
 @router.get("/{book_id}", response_model=BookOut)
 async def get_book(book_id: int) -> BookOut:
+    """Fetch a single book by id; 404 if it doesn't exist."""
     row = await books_repo.get_book(book_id)
     if row is None:
         raise HTTPException(
@@ -95,6 +99,7 @@ async def update_book(
     payload: BookUpdate,
     _user: dict = Depends(get_current_user),
 ) -> BookOut:
+    """Partial update of a book. Authenticated; 404 if missing, 400 if no fields supplied."""
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(
@@ -111,6 +116,7 @@ async def update_book(
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(book_id: int, _user: dict = Depends(get_current_user)) -> None:
+    """Delete a book by id. Authenticated; 404 if it doesn't exist."""
     ok = await books_repo.delete_book(book_id)
     if not ok:
         raise HTTPException(
@@ -119,6 +125,7 @@ async def delete_book(book_id: int, _user: dict = Depends(get_current_user)) -> 
 
 
 def _parse_csv_rows(text: str) -> list[dict]:
+    """Parse CSV text into book-shaped dicts; ';' splits the authors cell."""
     reader = csv.DictReader(io.StringIO(text))
     rows: list[dict] = []
     for raw in reader:
@@ -141,6 +148,7 @@ def _parse_csv_rows(text: str) -> list[dict]:
 
 
 def _parse_json_rows(text: str) -> list[dict]:
+    """Parse JSON text into a list of book-shaped dicts (accepts a single object too)."""
     data = json.loads(text)
     if isinstance(data, dict):
         data = [data]
@@ -158,6 +166,7 @@ async def import_books(
     file: UploadFile = File(...),
     _user: dict = Depends(get_current_user),
 ) -> ImportReport:
+    """Bulk-insert books from an uploaded JSON or CSV file; reports per-row errors."""
     raw = await file.read()
     try:
         text = raw.decode("utf-8")

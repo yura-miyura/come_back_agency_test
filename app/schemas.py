@@ -15,16 +15,19 @@ Password = Annotated[str, StringConstraints(min_length=8, max_length=128)]
 
 
 def _current_year() -> int:
+    """Return the current year in UTC."""
     return datetime.now(timezone.utc).year
 
 
 def _validate_year(year: int) -> int:
+    """Ensure published_year is between 1800 and the current year."""
     if year < 1800 or year > _current_year():
         raise ValueError(f"published_year must be between 1800 and {_current_year()}")
     return year
 
 
 def _validate_genre(genre: str) -> str:
+    """Ensure genre is one of the configured allow-listed values."""
     allowed = get_settings().allowed_genres
     if genre not in allowed:
         raise ValueError(f"genre must be one of: {', '.join(allowed)}")
@@ -32,6 +35,7 @@ def _validate_genre(genre: str) -> str:
 
 
 def _validate_authors(authors: list[str]) -> list[str]:
+    """Strip, length-check, and case-insensitively dedupe the author names."""
     cleaned: list[str] = []
     seen: set[str] = set()
     for raw in authors:
