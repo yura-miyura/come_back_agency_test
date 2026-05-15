@@ -1,146 +1,81 @@
 # Books API
 
-A FastAPI + PostgreSQL service for managing a catalog of books, with JWT
-authentication, bulk import (JSON/CSV), filtering, pagination, and sorting.
+A FastAPI + PostgreSQL service for managing a catalogue of books. Supports
+JWT-authenticated CRUD, filtering / pagination / sorting on the list
+endpoint, and bulk import from JSON or CSV files. Database access is via
+raw SQL (psycopg 3, async). Authors are normalised into their own table
+with a many-to-many join to books.
 
-## Stack
+## Requirements
 
-- **FastAPI** for the HTTP layer
-- **PostgreSQL** with **raw SQL** via async `psycopg` 3 (no ORM)
-- **PyJWT** + **bcrypt** for auth
-- **pytest** for unit + integration tests
+- Python 3.11+
+- PostgreSQL 13+ running locally (or accessible via `DATABASE_URL`)
 
-## Design notes
+## Quick start
 
-- **Normalized schema**: `books`, `authors`, and a `book_authors` join table.
-  Books are many-to-many with authors so a single author appearing on multiple
-  books is stored once.
-- **Raw SQL** — every database call uses parameterised SQL through psycopg,
-  not an ORM (matches the spec).
-- **Validation lives in Pydantic** (`schemas.py`): non-empty title/authors,
-  `published_year` ∈ [1800, current year], genre against an allow-list
-  (configurable in `config.py`).
-- **Auth**: bcrypt-hashed passwords, JWT bearer tokens via OAuth2 password flow.
-  Create / update / delete / import endpoints require a valid token; reads
-  are public.
+```bash
+# 1. create the application database
+createdb books
 
-## Project layout
+# 2. install dependencies — pick one of:
 
-```
-app/                        application package
-  __init__.py
-  main.py                   FastAPI app + lifespan + error handler
-  config.py                 settings (env-driven)
-  database.py               async psycopg pool + schema bootstrap
-  auth.py                   password hashing, JWT, current-user dependency
-  schemas.py                Pydantic request/response models with validators
-  repositories/
-    users.py                raw SQL for users
-    books.py                raw SQL for books + author upserts
-  routers/
-    auth.py                 /auth/register, /auth/login
-    books.py                /books CRUD + bulk import
-migrations/schema.sql       DDL — applied on app startup
-sample_data/books.csv       sample file you can feed to /books/import
-tests/                      pytest unit + integration tests
-  conftest.py
-  test_unit_*.py            DB-free unit tests
-  test_api_*.py             end-to-end API tests (require Postgres)
-pyproject.toml              dependencies + pytest config
-.env.example                template for local env vars
-.gitignore
-README.md
+# with uv
+uv sync --extra dev
+
+# OR with pip
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+
+# 3. configure (or copy .env.example to .env and edit)
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/books"
+export JWT_SECRET="a-long-random-string-at-least-32-bytes"
+
+# 4. run the server (schema is created automatically on startup)
+uvicorn app.main:app --reload
 ```
 
-## Running locally
+Interactive docs: <http://localhost:8000/docs>.
 
-1. Install Python ≥3.11 and PostgreSQL.
-2. Create a database, e.g. `createdb books`.
-3. Copy `.env.example` to `.env` and edit:
-
-   ```
-   DATABASE_URL=postgresql://<user>:<pass>@localhost:5432/books
-   JWT_SECRET=<a long random string, at least 32 bytes>
-   ```
-
-4. Install deps (using `uv`):
-
-   ```bash
-   uv sync --extra dev
-   ```
-
-   Or with pip:
-
-   ```bash
-   python -m venv .venv && source .venv/bin/activate
-   pip install -e '.[dev]'
-   ```
-
-5. Run the server (schema is created on startup):
-
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-   The interactive docs are at <http://localhost:8000/docs>.
+If you only want runtime deps (no test tools), install
+`requirements.txt` instead of `requirements-dev.txt`.
 
 ## Running tests
 
-The test suite hits a real PostgreSQL instance — it does not mock the DB,
-since the spec requires raw SQL.
+```bash
+# create a separate test database
+createdb books_test
 
-1. Create an empty test database, e.g. `createdb books_test`.
-2. Run:
+# run the suite
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/books_test" pytest
+```
 
-   ```bash
-   DATABASE_URL="postgresql://<user>@localhost:5432/books_test" \
-     pytest
-   ```
-
-Unit tests in `tests/test_unit_*` don't need the database and will run even
-without `DATABASE_URL` pointing at a live server (the autouse DB fixture is
-scoped to the integration `client` fixture).
+Unit tests in `tests/test_unit_*.py` run without a database; only the
+integration tests in `tests/test_api_*.py` need Postgres.
 
 ## API summary
 
-| Method | Path                  | Auth | Description |
-| ------ | --------------------- | ---- | ----------- |
-| POST   | `/auth/register`      | —    | Create user (`username`, `password`) |
-| POST   | `/auth/login`         | —    | OAuth2 password flow; returns JWT |
-| GET    | `/books`              | —    | List w/ filters + pagination + sorting |
-| POST   | `/books`              | yes  | Create a book |
-| GET    | `/books/{id}`         | —    | Get one |
-| PATCH  | `/books/{id}`         | yes  | Partial update |
-| DELETE | `/books/{id}`         | yes  | Delete |
-| POST   | `/books/import`       | yes  | Bulk import a JSON or CSV file |
-| GET    | `/health`             | —    | Liveness probe |
+| Method | Path             | Auth | Description |
+| ------ | ---------------- | ---- | ----------- |
+| POST   | `/auth/register` | —    | Register a user |
+| POST   | `/auth/login`    | —    | OAuth2 password flow; returns a JWT |
+| GET    | `/books/`        | —    | List with filters + pagination + sorting |
+| POST   | `/books/`        | yes  | Create a book |
+| GET    | `/books/{id}`    | —    | Get one |
+| PATCH  | `/books/{id}`    | yes  | Partial update |
+| DELETE | `/books/{id}`    | yes  | Delete |
+| POST   | `/books/import`  | yes  | Bulk import a JSON or CSV file |
+| GET    | `/health`        | —    | Liveness probe |
 
-### List query parameters
+List supports the query parameters `title`, `author`, `genre`,
+`year_from`, `year_to`, `sort_by` (`id` / `title` / `published_year` /
+`created_at` / `author`), `sort_dir` (`asc` / `desc`), `limit` (1..200,
+default 20), and `offset` (default 0).
 
-- `title` — case-insensitive substring match
-- `author` — case-insensitive substring match against any of the book's authors
-- `genre` — exact match (must be in the allow-list)
-- `year_from`, `year_to` — inclusive range over `published_year`
-- `sort_by` — `id` (default), `title`, `published_year`, `created_at`, `author`
-- `sort_dir` — `asc` (default), `desc`
-- `limit` — 1..200, default 20
-- `offset` — ≥0, default 0
+### Sample bulk import
 
-### Bulk import
-
-`POST /books/import` accepts `multipart/form-data` with a single `file` field.
-
-- **JSON** files: an array of objects, each shaped like a `POST /books` body.
-- **CSV** files with header row `title,authors,genre,published_year`.
-  Multiple authors per book go in the `authors` column separated by `;`.
-
-The response lists how many rows were inserted and per-row validation errors
-so a partial-success import is reported transparently.
-
-A sample CSV is included at `sample_data/books.csv`. Quick try-it-out:
+A ready-to-use CSV is included at `sample_data/books.csv`:
 
 ```bash
-# get a token first (replace credentials)
 TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
   -d 'username=user1&password=supersecret1' | jq -r .access_token)
 
@@ -149,10 +84,32 @@ curl -X POST http://localhost:8000/books/import \
   -F "file=@sample_data/books.csv"
 ```
 
-## Security notes
+CSV format: header row `title,authors,genre,published_year`; multiple
+authors inside a single cell are separated by `;`. JSON format: an
+array of objects shaped like a `POST /books/` body.
 
-- The original `database.py` checked in to this repo contained a real Neon
-  Postgres connection string with credentials. I replaced it with an
-  env-var-driven config; **please rotate the password on that Neon database**.
-- Pick a long random `JWT_SECRET` (≥32 bytes). The default in `config.py` is
-  intentionally insecure and exists only so the app can boot.
+## Project layout
+
+```
+app/
+  main.py            FastAPI app + lifespan + error handler
+  config.py          env-driven settings
+  database.py        async psycopg pool + schema bootstrap
+  auth.py            bcrypt + JWT + get_current_user dependency
+  schemas.py         Pydantic request / response models
+  repositories/      raw-SQL data access (books, users)
+  routers/           HTTP endpoints (auth, books)
+migrations/schema.sql   DDL applied on startup
+sample_data/books.csv   sample for the /books/import endpoint
+tests/                  pytest unit + integration tests
+pyproject.toml          uv / hatch project metadata
+requirements*.txt       pip-compatible dep lists
+```
+
+## Security note
+
+The original `database.py` was checked in with real Neon Postgres
+credentials. They've been removed from the working tree but remain in
+git history — **please rotate that password**. Also generate a strong
+`JWT_SECRET`; the fallback in `config.py` is insecure on purpose so the
+app can boot during development.
