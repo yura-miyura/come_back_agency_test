@@ -27,7 +27,7 @@ SortField = Literal["id", "title", "published_year", "created_at", "author"]
 SortDir = Literal["asc", "desc"]
 
 
-@router.post("/create-book", response_model=BookOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=BookOut, status_code=status.HTTP_201_CREATED)
 async def create_book(payload: BookCreate, _user: dict = Depends(get_current_user)) -> BookOut:
     row = await books_repo.create_book(
         title=payload.title,
@@ -38,7 +38,7 @@ async def create_book(payload: BookCreate, _user: dict = Depends(get_current_use
     return BookOut(**row)
 
 
-@router.get("/list-books", response_model=PaginatedBooks)
+@router.get("/", response_model=PaginatedBooks)
 async def list_books(
     title: str | None = None,
     author: str | None = None,
@@ -139,7 +139,7 @@ def _parse_json_rows(text: str) -> list[dict]:
 
 
 @router.post(
-    "/import-books",
+    "/import",
     response_model=ImportReport,
     status_code=status.HTTP_201_CREATED,
 )
